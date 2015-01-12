@@ -1,0 +1,4 @@
+fluid-synth
+vorbis-tools
+sox
+libsndfile

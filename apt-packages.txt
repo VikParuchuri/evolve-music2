@@ -1,0 +1,4 @@
+vorbis-tools
+mpg321
+fluidsynth
+fluid-soundfont-gm

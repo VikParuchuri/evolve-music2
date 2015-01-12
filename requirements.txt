@@ -1,0 +1,9 @@
+scrapy
+cryptography==0.5.4
+ipython
+numpy
+scipy
+scikit-learn
+pandas
+git+git://github.com/vishnubob/python-midi.git@HEAD#egg=midi
+scikits.audiolab
