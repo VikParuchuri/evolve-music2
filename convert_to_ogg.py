@@ -9,10 +9,21 @@ def convert_to_ogg(mfile, ogg_path=settings.OGG_DIR):
     oggpath = os.path.abspath(os.path.join(ogg_path, oggfile))
     wavpath = os.path.abspath(os.path.join(settings.TEMP_DIR, "temp.wav"))
     rawpath = os.path.abspath(os.path.join(settings.TEMP_DIR, "temp"))
-    subprocess.call(['fluidsynth', '-i', '-n', '-F', rawpath, "-r 44100", settings.SOUNDFONT_PATH, mfile])
     subprocess.call(
-        ["sox", "-t", "raw", "-r", "44100", "-b", "16", "-c", "1", "-e", "signed", "--norm", rawpath, wavpath])
-    subprocess.call(['oggenc', "-Q", "-o", oggpath, wavpath])
+        ['fluidsynth', '-i', '-n', '-F', rawpath, "-r 44100", settings.SOUNDFONT_PATH, mfile],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT
+    )
+    subprocess.call(
+        ["sox", "-t", "raw", "-r", "44100", "-b", "16", "-c", "1", "-e", "signed", "--norm", rawpath, wavpath],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT
+    )
+    subprocess.call(
+        ['oggenc', "-Q", "-o", oggpath, wavpath],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT
+    )
     os.remove(wavpath)
     os.remove(rawpath)
 

@@ -21,8 +21,11 @@ class TrackEvaluator(object):
         return distance_vec
 
     def score_track(self, filepath):
-        distance_vec = self.evaluate_track(filepath)
-        return (distance_vec.mean() * 1000) + (distance_vec.min() * 1000)
+        try:
+            distance_vec = self.evaluate_track(filepath)
+            return (distance_vec.mean() * 1000) + (distance_vec.min() * 1000)
+        except Exception:
+            return 1000
 
     def score_tracks(self):
         scores = {}

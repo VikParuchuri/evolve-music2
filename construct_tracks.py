@@ -8,6 +8,7 @@ import settings
 from transition_matrix import generate_transition_matrices, read_all_midis
 from collections import Counter
 from copy import deepcopy
+import note_phrases
 
 log = logging.getLogger(__name__)
 
@@ -34,149 +35,92 @@ def find_closest_element(e, l):
     ind = dists.index(min(dists))
     return l[ind]
 
-
-def generate_markov_seq(data, length, key="tempo_matrix", tick_key="tick"):
+def find_match(note_mats, last_val, note_type="tick", max_val=None):
     inds = []
-    for i in xrange(0, len(data)):
-        inds.append([int(i) for i in data[i][key][tick_key]["inds"]])
-    start = inds[0][pick_proba(np.divide(np.sum(data[0][key][tick_key]["mat"], axis=1), 1000000))]
-    seq = [start]
-    for j in xrange(1, length):
-        try:
-            val = 0
-            multiplier = 1
-            divisor = 1
-            for i in xrange(0, len(data)):
-                try:
-                    tick_mat = data[i][key][tick_key]["mat"]
-                    ind = inds[i].index(find_closest_element(seq[j - 1], inds[i]))
-                    sind = pick_proba(tick_mat[ind, :] / np.sum(tick_mat[ind, :]))
-                    val += (inds[i][sind]) * multiplier
-                    divisor += multiplier
-                    multiplier /= settings.MELODY_DECAY
-                except Exception:
-                    pass
-            val /= divisor
-            val = find_closest_element(val, inds[0])
-            if val == seq[j - 1] and val == seq[j - 2]:
-                val = find_closest_element(val - 40, inds[0])
+    for i in xrange(0, len(note_mats)):
+        inds.append([int(i) for i in note_mats[i][note_type]["inds"]])
+    for i in xrange(0, len(note_mats)):
+        ind = inds[i].index(find_closest_element(last_val, inds[i]))
+    t = 0
+    multiplier = 1
+    divisor = 1
+    for i in xrange(0, len(note_mats)):
+        mat = note_mats[i][note_type]["mat"]
+        sind = pick_proba(mat[ind, :] / np.sum(mat[ind, :]))
+        t += (inds[i][sind]) * multiplier
+        divisor += multiplier
+        multiplier /= settings.MELODY_DECAY
 
-            seq.append(val)
+    t /= divisor
+    t = find_closest_element(t, inds[0])
+    if max_val is not None and t > max_val:
+        t = max_val
+    return t
 
-        except Exception:
-            print("Failed markov sequence")
-            seq.append(random.choice(inds))
-    return seq
+def find_next_phrase(pitch, velocity, tick, instrument_phrases):
+    diffs = []
+    for phrase in instrument_phrases:
+        diff = abs(pitch - phrase["pitch"][0]) + abs(velocity - phrase["velocity"][0]) + abs(tick - phrase["tick"][0])
+        diffs.append(diff)
+    ind = diffs.index(min(diffs))
+    return instrument_phrases[ind]
 
-
-def generate_tick_seq(data, length, tick_max=4000, key="tempo_matrix"):
-    inds = []
-    for i in xrange(0, len(data)):
-        inds.append([int(i) for i in data[i][key]["tick"]["inds"]])
-    tick_max = int(find_closest_element(tick_max, inds[0]))
-    start = inds[0][pick_proba(np.divide(np.sum(data[0][key]["tick"]["mat"], axis=1), 1000000))]
-    log.info("Start {0}".format(start))
-    if start > tick_max:
-        start = tick_max
-    seq = []
-    seq.append(start)
+def generate_note_sequence(instrument_phrases, note_mats, length, tick_max=160):
+    next_phrase = random.choice(instrument_phrases)
+    phrases = []
     sofar = 0
-    j = 1
-    zeros_count = 0
     while sofar < length:
-        t = 0
-        multiplier = 1
-        divisor = 1
-        for i in xrange(0, len(data)):
-            tick_mat = data[i][key]["tick"]["mat"]
-            ind = inds[i].index(find_closest_element(seq[j - 1], inds[i]))
-            sind = pick_proba(tick_mat[ind, :] / np.sum(tick_mat[ind, :]))
-            t += (inds[i][sind]) * multiplier
-            divisor += multiplier
-            multiplier /= settings.MELODY_DECAY
-        t /= divisor
-        t = find_closest_element(t, inds[0])
-        if t > tick_max:
-            t = tick_max
-        if zeros_count > 5:
-            t = int(find_closest_element(100, inds[0]))
-            if t == 0:
-                t = 20
-        if t == 0:
-            zeros_count += 1
-        else:
-            zeros_count = 0
-        seq.append(int(t))
-        sofar += t
-        j += 1
+        phrases.append(next_phrase)
+        sofar += sum([next_phrase["tick"][i] for i in xrange(0,len(next_phrase["tick"])) if next_phrase["type"][i] == "on"])
+        last_pitch = next_phrase["pitch"][-1]
+        last_tick = next_phrase["tick"][-1]
+        last_velocity = next_phrase["velocity"][-1]
+        pitch = find_match(note_mats, last_pitch, note_type="pitch")
+        velocity = find_match(note_mats, last_velocity, note_type="velocity")
+        tick = find_match(note_mats, last_tick, note_type="tick")
+        next_phrase = find_next_phrase(pitch, velocity, tick, instrument_phrases)
 
-    if sofar > length:
-        seq[-1] -= (sofar - length)
-    return seq
+    return phrases
 
-
-def generate_audio_track(data, length, all_instruments=None):
+def generate_audio_track(data, note_phrases, length):
     notes = data[0]["note_matrix"]
-    if all_instruments is None:
-        instrument = random.choice(notes.keys())
-    else:
-        ai = [a for a in all_instruments if a < 42 and a > 55]
-        if len(ai) == 0:
-            instrument = random.choice(all_instruments)
-        else:
-            instrument = random.choice(ai)
-    note_mats = [{"note_matrix": d["note_matrix"][instrument]} for d in data]
-    tick = generate_tick_seq(note_mats, length, tick_max=160, key="note_matrix")
-    tick_length = len(tick)
-    pitch = generate_markov_seq(note_mats, tick_length, key="note_matrix", tick_key="pitch")
-    velocity = generate_markov_seq(note_mats, tick_length, key="note_matrix", tick_key="velocity")
-    for i in xrange(0, len(velocity)):
-        if velocity[i] > 100:
-            velocity[i] = 100
+    valid_instruments = list(set(notes.keys()).intersection(note_phrases.keys()))
+    instrument = random.choice(valid_instruments)
+    note_mats = [d["note_matrix"][instrument] for d in data]
+    if len(note_phrases[instrument]) == 0:
+        return None
+    phrases = generate_note_sequence(note_phrases[instrument], note_mats, length, tick_max=160)
 
     track = midi.Track()
     track.append(midi.TrackNameEvent())
     prog = midi.ProgramChangeEvent()
     prog.set_value(instrument)
     track.append(prog)
-    notes = []
-    for i in xrange(0, min(tick_length, settings.BASE_HARMONY_LENGTH)):
-        on = midi.NoteOnEvent(channel=0)
-        on.set_pitch(pitch[i])
-        on.set_velocity(velocity[i])
-        on.tick = tick[i]
-        notes.append(on)
-        off = midi.NoteOffEvent(channel=0)
-        off.set_pitch(pitch[i])
-        off.set_velocity(velocity[i])
-        off.tick = tick[i]
-        notes.append(off)
-    total_length = 0
-    for i in xrange(0, tick_length):
-        ind = i % len(notes)
-        track.append(notes[ind])
-        if isinstance(notes[ind], midi.NoteOnEvent):
-            total_length += notes[ind].tick
-        if total_length > length:
-            break
+    for i in xrange(0, len(phrases)):
+        for j in xrange(0, len(phrases[i]["tick"])):
+            pitch = phrases[i]["pitch"][j]
+            velocity = phrases[i]["velocity"][j]
+            note_type = phrases[i]["type"][j]
+            tick = phrases[i]["tick"][j]
+            obj = midi.NoteOnEvent(channel=0)
+            if note_type == "off":
+                obj = midi.NoteOffEvent(channel=0)
+            obj.set_pitch(pitch)
+            obj.set_velocity(velocity)
+            obj.tick = tick
+            track.append(obj)
     track.append(midi.EndOfTrackEvent())
     return track
 
 
-def generate_tempo_track(data, length):
-    tick = generate_tick_seq(data, length, key="tempo_matrix")
-    length = len(tick)
-    mpqn = generate_markov_seq(data, length, key="tempo_matrix", tick_key="mpqn")
-
+def generate_tempo_track(data, length, mpqn=20):
     track = midi.Track()
     track.append(midi.TrackNameEvent())
     track.append(midi.TextMetaEvent())
-    for i in xrange(0, length):
-        if mpqn[i] != 0:
-            te = midi.SetTempoEvent()
-            te.tick = tick[i]
-            te.set_mpqn(mpqn[i])
-            track.append(te)
+    te = midi.SetTempoEvent()
+    te.tick = length
+    te.set_mpqn(mpqn)
+    track.append(te)
     track.append(midi.EndOfTrackEvent())
     return track
 
@@ -241,22 +185,26 @@ class TrackGenerator(object):
         if track_generator is not None:
             self.data = track_generator.data
             self.midi_data = track_generator.midi_data
+            self.note_phrases = track_generator.note_phrases
 
     def read_data(self):
         self.data = generate_transition_matrices(settings.TRANSITION_MATRIX_START, settings.TRANSITION_MATRIX_END)
         self.midi_data = read_all_midis()
+        self.note_phrases = note_phrases.generate_note_phrases()
         print("Done reading data")
 
     def create_pools(self, track_count=1):
         track_pool = []
         for i in xrange(0, track_count):
             log.info("On track {0}".format(i))
-            track_pool.append(generate_audio_track(self.data, settings.TRACK_LENGTH))
+            track = generate_audio_track(self.data, self.note_phrases, settings.TRACK_LENGTH)
+            if track is not None:
+                track_pool.append(track)
 
         tempo_pool = []
         for i in xrange(0, min(1, int(math.floor(track_count / 4)))):
             log.info("On tempo {0}".format(i))
-            tempo_pool.append(generate_tempo_track(self.data, settings.TRACK_LENGTH))
+            tempo_pool.append(generate_tempo_track(self.data, settings.TRACK_LENGTH, mpqn=random.choice(settings.TEMPO_CHOICES)))
 
         all_instruments = []
         for t in track_pool:
@@ -305,3 +253,8 @@ class TrackGenerator(object):
         for i, pattern in enumerate(self.pattern_pool):
             write_midi_to_file(pattern, "{0}.mid".format(i))
         print("Done writing patterns")
+
+    def create_and_write(self, track_count=10):
+        self.create_pools(track_count * 5)
+        self.generate_tracks(track_count)
+        self.write_patterns()

@@ -79,3 +79,4 @@ def evolve_tracks(track_generator=None, track_evaluator=None, evolutions=10, tra
         track_generator.pattern_pool = patterns
         track_generator.write_patterns()
         generated_midi_to_ogg()
+    return track_generator, track_evaluator

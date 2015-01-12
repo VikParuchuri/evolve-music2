@@ -92,7 +92,7 @@ def generate_transition_matrix(offset=1):
 
 def read_single_midi(f):
     try:
-        m = midi.read_midifile(os.path.join(settings.SOURCE_MIDI_DIR, f))
+        m = midi.read_midifile(f)
     except Exception:
         return None
     notes, tempos, instruments = process_midifile(m)
