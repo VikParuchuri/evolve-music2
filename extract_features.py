@@ -106,7 +106,7 @@ def calc_features(vec, freq):
     # bin count
     bc = settings.MUSIC_TIME_LIMIT
     bincount = list(range(bc))
-    #framesize
+    # framesize
     fsize = 512
     #mean
     m = np.mean(vec)
@@ -177,6 +177,7 @@ def process_song(vec, f):
 
     return features
 
+
 def generate_features(filepath):
     frame = None
     data, fs, enc = read_sound(filepath)
@@ -217,5 +218,5 @@ def generate_train_features():
         frame.to_csv(settings.TRAIN_FEATURE_PATH)
     else:
         frame = pd.read_csv(settings.TRAIN_FEATURE_PATH)
-        frame = frame.iloc[:,1:]
+        frame = frame.iloc[:, 1:]
     return frame

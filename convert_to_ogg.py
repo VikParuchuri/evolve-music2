@@ -2,18 +2,20 @@ import os
 import settings
 import subprocess
 
+
 def convert_to_ogg(mfile, ogg_path=settings.OGG_DIR):
     file_end = mfile.split("/")[-1].split(".")[0]
     oggfile = file_end + ".ogg"
     oggpath = os.path.abspath(os.path.join(ogg_path, oggfile))
     wavpath = os.path.abspath(os.path.join(settings.TEMP_DIR, "temp.wav"))
     rawpath = os.path.abspath(os.path.join(settings.TEMP_DIR, "temp"))
-    if not os.path.isfile(oggpath):
-        subprocess.call(['fluidsynth', '-i','-n', '-F', rawpath, "-r 44100", settings.SOUNDFONT_PATH, mfile])
-        subprocess.call(["sox", "-t", "raw", "-r", "44100", "-b", "16", "-c", "1", "-e", "signed", "--norm", rawpath, wavpath])
-        subprocess.call(['oggenc', "-Q", "-o", oggpath, wavpath])
-        os.remove(wavpath)
-        os.remove(rawpath)
+    subprocess.call(['fluidsynth', '-i', '-n', '-F', rawpath, "-r 44100", settings.SOUNDFONT_PATH, mfile])
+    subprocess.call(
+        ["sox", "-t", "raw", "-r", "44100", "-b", "16", "-c", "1", "-e", "signed", "--norm", rawpath, wavpath])
+    subprocess.call(['oggenc', "-Q", "-o", oggpath, wavpath])
+    os.remove(wavpath)
+    os.remove(rawpath)
+
 
 def convert_all_to_ogg():
     for f in os.listdir(settings.SOURCE_MIDI_DIR):

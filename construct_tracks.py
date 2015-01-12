@@ -46,7 +46,7 @@ def generate_markov_seq(data, length, key="tempo_matrix", tick_key="tick"):
             val = 0
             multiplier = 1
             divisor = 1
-            for i in xrange(0,len(data)):
+            for i in xrange(0, len(data)):
                 try:
                     tick_mat = data[i][key][tick_key]["mat"]
                     ind = inds[i].index(find_closest_element(seq[j - 1], inds[i]))
@@ -58,8 +58,8 @@ def generate_markov_seq(data, length, key="tempo_matrix", tick_key="tick"):
                     pass
             val /= divisor
             val = find_closest_element(val, inds[0])
-            if val == seq[j-1] and val == seq[j-2]:
-                val = find_closest_element(val-40,inds[0])
+            if val == seq[j - 1] and val == seq[j - 2]:
+                val = find_closest_element(val - 40, inds[0])
 
             seq.append(val)
 
@@ -87,7 +87,7 @@ def generate_tick_seq(data, length, tick_max=4000, key="tempo_matrix"):
         t = 0
         multiplier = 1
         divisor = 1
-        for i in xrange(0,len(data)):
+        for i in xrange(0, len(data)):
             tick_mat = data[i][key]["tick"]["mat"]
             ind = inds[i].index(find_closest_element(seq[j - 1], inds[i]))
             sind = pick_proba(tick_mat[ind, :] / np.sum(tick_mat[ind, :]))
@@ -180,6 +180,7 @@ def generate_tempo_track(data, length):
     track.append(midi.EndOfTrackEvent())
     return track
 
+
 def find_similar_instrument(instruments, midi_data):
     all_instruments = []
     for m in midi_data:
@@ -193,7 +194,7 @@ def find_similar_instrument(instruments, midi_data):
                 all_instruments += [instrument] * times
     if len(all_instruments) == 0:
         for m in midi_data:
-             for instrument in m["instruments"]:
+            for instrument in m["instruments"]:
                 times = random.randint(0, 5)
                 all_instruments += [instrument] * times
     c = Counter(all_instruments)
@@ -205,15 +206,16 @@ def find_similar_instrument(instruments, midi_data):
             break
     return most_common
 
-def maximize_distance(existing,possible):
+
+def maximize_distance(existing, possible):
     try:
         instrument = None
         counter = 0
         max_dist = 0
-        while counter < 100 and ((instrument==None or max_dist<=8) or (instrument>=42 and instrument<=55)):
-            counter+=1
+        while counter < 100 and ((instrument == None or max_dist <= 8) or (instrument >= 42 and instrument <= 55)):
+            counter += 1
             instrument = random.choice(possible)
-            max_dist = min([abs(instrument-e) for e in existing])
+            max_dist = min([abs(instrument - e) for e in existing])
     except ValueError:
         return 10, random.choice(range(len(possible)))
 
@@ -222,14 +224,17 @@ def maximize_distance(existing,possible):
 
     return max_dist, instrument
 
+
 def generate_track(tracks):
     pat = midi.Pattern(tracks=tracks)
     return pat
 
+
 def write_midi_to_file(pattern, name="tmp.mid"):
     midi_path = os.path.abspath(os.path.join(settings.GENERATED_MIDI_PATH, name))
-    midi.write_midifile(midi_path,pattern)
+    midi.write_midifile(midi_path, pattern)
     return midi_path
+
 
 class TrackGenerator(object):
     def __init__(self, track_generator=None):

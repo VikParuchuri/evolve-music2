@@ -3,6 +3,7 @@ from scipy.spatial.distance import cdist
 import os
 import settings
 
+
 class TrackEvaluator(object):
     def __init__(self, track_eval=None):
         if track_eval is not None:
@@ -14,7 +15,7 @@ class TrackEvaluator(object):
 
     def evaluate_track(self, filepath):
         features = extract_features.generate_features(filepath)
-        sel_feats = features.iloc[:-3].reshape(1,-1)
+        sel_feats = features.iloc[:-3].reshape(1, -1)
         sel_train = self.train_data.iloc[:, :-3]
         distance_vec = cdist(sel_train, sel_feats, "cosine").reshape(-1)
         return distance_vec
