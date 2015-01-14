@@ -1,7 +1,6 @@
 scrapy
 cryptography==0.5.4
 ipython
-numpy
 scipy
 scikit-learn
 pandas

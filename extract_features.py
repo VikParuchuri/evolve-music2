@@ -16,16 +16,16 @@ def read_sound(fpath, limit=settings.MUSIC_TIME_LIMIT):
         data, fs, enc = oggread(fpath)
         upto = fs * limit
     except IOError:
-        log.exception("Could not read file")
+        log.error("Could not read file at {0}".format(fpath))
         raise IOError
     if data.shape[0] < upto:
-        log.error("Music file not long enough.")
+        log.error("Music file at {0} not long enough.".format(fpath))
         raise ValueError
     try:
         if len(data.shape) == 1 or data.shape[1] != 2:
             data = np.vstack([data, data]).T
     except Exception:
-        log.error("Invalid dimension count. Do you have left and right channel audio?")
+        log.error("Invalid dimension count for file at {0}. Do you have left and right channel audio?".format(fpath))
         raise ValueError
     data = data[0:upto, :]
     return data, fs, enc
@@ -172,7 +172,7 @@ def process_song(vec, f):
     try:
         features = extract_features(vec, f)
     except Exception:
-        print("Cannot generate features")
+        log.error("Cannot generate features for file {0}".format(f))
         return None
 
     return features
@@ -196,7 +196,9 @@ def generate_train_features():
         fss = []
         fnames = []
         for i, p in enumerate(os.listdir(settings.OGG_DIR)):
-            print("On file {0}".format(p))
+            if not p.endswith(".ogg"):
+                continue
+            log.debug("On file {0}".format(p))
             filepath = os.path.join(settings.OGG_DIR, p)
             try:
                 data, fs, enc = read_sound(filepath)
@@ -205,7 +207,7 @@ def generate_train_features():
             try:
                 features = process_song(data, fs)
             except Exception:
-                print("Could not get features")
+                log.error("Could not get features for file {0}".format(p))
                 continue
             d.append(features)
             fss.append(fs)

@@ -72,7 +72,8 @@ def generate_transition_matrix(offset=1):
     notes = {}
     all_instruments = []
     for i, f in enumerate(os.listdir(settings.SOURCE_MIDI_DIR)):
-        log.info("On file {0}".format(i))
+        if not f.endswith(".mid"):
+            continue
         try:
             m = midi.read_midifile(os.path.join(settings.SOURCE_MIDI_DIR, f))
         except Exception:
@@ -81,7 +82,7 @@ def generate_transition_matrix(offset=1):
             notes, tempos, instruments = process_midifile(m, notes, tempos)
             all_instruments.append(instruments)
         except Exception:
-            log.exception("Could not get features")
+            log.error("Could not get features for file {0}".format(f))
             continue
     note_matrix, tempo_matrix = generate_matrices(notes, tempos, offset)
 
@@ -105,7 +106,8 @@ def read_single_midi(f):
 def read_all_midis():
     data = []
     for i, f in enumerate(os.listdir(settings.SOURCE_MIDI_DIR)):
-        data.append(read_single_midi(os.path.join(settings.SOURCE_MIDI_DIR, f)))
+        if f.endswith(".mid"):
+            data.append(read_single_midi(os.path.join(settings.SOURCE_MIDI_DIR, f)))
     return data
 
 def generate_transition_matrices(start, end):

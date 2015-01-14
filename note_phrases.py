@@ -44,5 +44,6 @@ def generate_note_phrase(filepath, data=None):
 def generate_note_phrases():
     data = {}
     for i, f in enumerate(os.listdir(settings.SOURCE_MIDI_DIR)):
-        generate_note_phrase(os.path.join(settings.SOURCE_MIDI_DIR, f), data)
+        if f.endswith(".mid"):
+            generate_note_phrase(os.path.join(settings.SOURCE_MIDI_DIR, f), data)
     return data

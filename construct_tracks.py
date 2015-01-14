@@ -9,6 +9,7 @@ from transition_matrix import generate_transition_matrices, read_all_midis
 from collections import Counter
 from copy import deepcopy
 import note_phrases
+import itertools
 
 log = logging.getLogger(__name__)
 
@@ -82,10 +83,11 @@ def generate_note_sequence(instrument_phrases, note_mats, length, tick_max=160):
 
     return phrases
 
-def generate_audio_track(data, note_phrases, length):
+def generate_audio_track(data, note_phrases, length, instrument=None):
     notes = data[0]["note_matrix"]
-    valid_instruments = list(set(notes.keys()).intersection(note_phrases.keys()))
-    instrument = random.choice(valid_instruments)
+    if instrument is None:
+        valid_instruments = list(set(notes.keys()).intersection(note_phrases.keys()))
+        instrument = random.choice(valid_instruments)
     note_mats = [d["note_matrix"][instrument] for d in data]
     if len(note_phrases[instrument]) == 0:
         return None
@@ -179,6 +181,19 @@ def write_midi_to_file(pattern, name="tmp.mid"):
     midi.write_midifile(midi_path, pattern)
     return midi_path
 
+def next_instrument(chosen, all):
+    for k in all:
+        if k not in chosen:
+            return k
+    chosen_count = Counter(chosen)
+    all_tuples = [(k,all[k]) for k in all]
+    chosen_tuples = [(k, chosen[k]) for k in chosen_count]
+    all_tuples = sorted(all_tuples, key=lambda tup: tup[1])
+    chosen_tuples = sorted(chosen_tuples, key=lambda tup: tup[1])
+    for i, t in enumerate(chosen_tuples):
+        if t[0] != all_tuples[i][0]:
+            return all_tuples[i][0]
+    return all_tuples[0][0]
 
 class TrackGenerator(object):
     def __init__(self, track_generator=None):
@@ -191,19 +206,22 @@ class TrackGenerator(object):
         self.data = generate_transition_matrices(settings.TRANSITION_MATRIX_START, settings.TRANSITION_MATRIX_END)
         self.midi_data = read_all_midis()
         self.note_phrases = note_phrases.generate_note_phrases()
-        print("Done reading data")
+        log.info("Done reading data")
 
     def create_pools(self, track_count=1):
+        instrument_lists = [m["instruments"] for m in self.midi_data]
+        all_instruments = Counter(list(itertools.chain.from_iterable(instrument_lists)))
+        chosen_instruments = []
         track_pool = []
         for i in xrange(0, track_count):
-            log.info("On track {0}".format(i))
-            track = generate_audio_track(self.data, self.note_phrases, settings.TRACK_LENGTH)
+            instrument = next_instrument(chosen_instruments, all_instruments)
+            track = generate_audio_track(self.data, self.note_phrases, settings.TRACK_LENGTH, instrument=instrument)
             if track is not None:
                 track_pool.append(track)
+                chosen_instruments.append(instrument)
 
         tempo_pool = []
         for i in xrange(0, min(1, int(math.floor(track_count / 4)))):
-            log.info("On tempo {0}".format(i))
             tempo_pool.append(generate_tempo_track(self.data, settings.TRACK_LENGTH, mpqn=random.choice(settings.TEMPO_CHOICES)))
 
         all_instruments = []
@@ -216,18 +234,18 @@ class TrackGenerator(object):
         self.track_pool = track_pool
         self.tempo_pool = tempo_pool
         self.all_instruments = all_instruments
-        print("Done creating pools")
+        log.info("Done creating pools")
 
     def generate_tracks(self, track_count=1):
         pattern_pool = []
+        instrument_lists = [self.midi_data[i]["instruments"] for i in xrange(0,len(self.midi_data)) if len(self.midi_data[i]["instruments"]) > 0]
         for i in xrange(0, int(math.floor(track_count))):
-            log.info("On track {0}".format(i))
-            track_number = random.randint(2, 5)
+            instruments = random.choice(instrument_lists)
+            track_number = random.randint(1, min(5, len(instruments)))
             tempo_track = random.choice(self.tempo_pool)
             tracks = [tempo_track]
-            instruments = []
             for i in xrange(0, track_number):
-                instrument = find_similar_instrument(instruments, self.midi_data)
+                instrument = instruments[i]
                 sel_track_pool = []
                 for t in self.track_pool:
                     for e in t:
@@ -247,14 +265,14 @@ class TrackGenerator(object):
             pattern_pool.append(generate_track(tracks))
 
         self.pattern_pool = pattern_pool
-        print("Done generating tracks")
+        log.info("Done generating tracks")
 
     def write_patterns(self):
         for i, pattern in enumerate(self.pattern_pool):
             write_midi_to_file(pattern, "{0}.mid".format(i))
-        print("Done writing patterns")
+        log.info("Done writing patterns")
 
     def create_and_write(self, track_count=10):
-        self.create_pools(track_count * 5)
+        self.create_pools(track_count * settings.POOL_MULTIPLIER)
         self.generate_tracks(track_count)
         self.write_patterns()

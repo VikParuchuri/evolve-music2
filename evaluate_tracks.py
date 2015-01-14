@@ -2,6 +2,8 @@ import extract_features
 from scipy.spatial.distance import cdist
 import os
 import settings
+import logging
+log = logging.getLogger(__name__)
 
 
 class TrackEvaluator(object):
@@ -11,7 +13,7 @@ class TrackEvaluator(object):
 
     def read_data(self):
         self.train_data = extract_features.generate_train_features()
-        print("Done reading in data!")
+        log.info("Done reading in data!")
 
     def evaluate_track(self, filepath):
         features = extract_features.generate_features(filepath)
@@ -23,13 +25,14 @@ class TrackEvaluator(object):
     def score_track(self, filepath):
         try:
             distance_vec = self.evaluate_track(filepath)
-            return (distance_vec.mean() * 1000) + (distance_vec.min() * 1000)
+            return (distance_vec.mean() * 1000) + (distance_vec.min() * 500) + (distance_vec.max() * 500)
         except Exception:
             return 1000
 
     def score_tracks(self):
         scores = {}
         for fname in os.listdir(settings.GENERATED_OGG_PATH):
-            fpath = os.path.join(settings.GENERATED_OGG_PATH, fname)
-            scores[fname] = self.score_track(fpath)
+            if fname.endswith(".ogg"):
+                fpath = os.path.join(settings.GENERATED_OGG_PATH, fname)
+                scores[fname] = self.score_track(fpath)
         return scores

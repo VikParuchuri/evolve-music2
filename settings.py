@@ -13,6 +13,7 @@ GENERATED_PATH = os.path.join(DATA_DIR, "generated")
 GENERATED_OGG_PATH = os.path.join(GENERATED_PATH, "ogg")
 GOOD_DIR = os.path.join(DATA_DIR, "good")
 GOOD_MIDI_PATH = os.path.join(GOOD_DIR, "midi")
+GOOD_OGG_PATH = os.path.join(GOOD_DIR, "ogg")
 
 VALUE_ROUNDOFF = 5
 TICK_ROUNDOFF = 10
@@ -29,6 +30,10 @@ TRAIN_FEATURE_PATH = os.path.join(GENERATED_PATH, "train_features.csv")
 
 GOOD_INSTRUMENTS = [1,2,3,4,5,6,7,19,22,25,26,27,28,30,31,32,33,34,35,36,37,38,39,40,41,42,43,57,58,63,64,65,66,67,74,76,105,113]
 
-NOTE_STEP = 8
+NOTE_STEP = 16
 
 TEMPO_CHOICES = [600000, 50, 1000000]
+
+POOL_MULTIPLIER = 20
+
+LOG_PATH = os.path.join(DATA_DIR, "em.log")

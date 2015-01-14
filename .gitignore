@@ -38,8 +38,13 @@ nosetests.xml
 #pycharm
 .idea
 
-data
 private.py
 *.mid
 *.ogg
 .DS_Store
+!.vc
+*.sf2
+full.json
+em.log
+data/temp/temp
+train_features.csv

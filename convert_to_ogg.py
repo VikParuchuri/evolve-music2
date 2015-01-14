@@ -30,4 +30,5 @@ def convert_to_ogg(mfile, ogg_path=settings.OGG_DIR):
 
 def convert_all_to_ogg():
     for f in os.listdir(settings.SOURCE_MIDI_DIR):
-        convert_to_ogg(os.path.join(settings.SOURCE_MIDI_DIR, f))
+        if f.endswith(".mid"):
+            convert_to_ogg(os.path.join(settings.SOURCE_MIDI_DIR, f))
