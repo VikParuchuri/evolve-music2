@@ -48,3 +48,4 @@ full.json
 em.log
 data/temp/temp
 train_features.csv
+*.wav
