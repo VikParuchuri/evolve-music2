@@ -101,12 +101,17 @@ def evolve_tracks(track_generator=None, track_evaluator=None, evolutions=3, trac
 if __name__ == "__main__":
     logging.basicConfig(filename=settings.LOG_PATH, level=logging.DEBUG)
     args = sys.argv[1:]
-    evolutions = 3
-    track_count = 30
+    evolutions = 2
+    track_count = 10
     if len(args) == 1:
         track_count = int(args[0])
     if len(args) == 2:
         track_count = int(args[0])
         evolutions = int(args[1])
-    evolve_tracks(evolutions=evolutions, track_count=track_count)
+    tg, te = evolve_tracks(evolutions=evolutions)
+    tracks = evolutions
+    while tracks < track_count:
+        evolve_tracks(track_generator=tg, track_evaluator=te, evolutions=evolutions)
+        tracks += evolutions
+
     good_midi_to_ogg()

@@ -35,10 +35,11 @@ So, you want to have your computer make music for you, huh?  Came to the right s
     * It's possible that one or more of the .mid files are just text stored as `.mid`, and you may get errors later (but you'll be able to delete them then).
     * Switch back to the `evolve-music2` directory (project root).
 2.  You can now run `python evolve_tracks.py` to evolve tracks.
-    * You can pass two optional arguments, the number of tracks, and the number of evolutions.  `python evolve_tracks.py 30 5` will make 30 candidate tracks for each evolution, and run through 5 evolutions.
+    * You can pass two optional arguments, the number of tracks, and the number of evolutions.  `python evolve_tracks.py 20 5` will make 20 tracks total, and run through 5 evolutions.
     * The generated music will be in `data/good`.  Both midi and ogg files will be available.  You'll see as many files as there were evolutions.
     * If you get any errors while running this command, or if it hangs for over 30 minutes, you should check the logs at `data/em.log`. If the last line mentions a midi or ogg file, you should delete it -- it's probably corrupt.
     * All the features for the training data are extracted the first time, so the command will be much faster the second time you run it and beyond.  If you need to regenerate training features, delete `data/generated/train_features.csv`.
+    * If you set evolutions high (above 3 or 4), you'll see some duplicate tracks -- this is because the "best" track stays the "best" through multiple generations.
     
 Contributions
 ---------------------
